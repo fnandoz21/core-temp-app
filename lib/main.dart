@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Core Temp Reading'),
     );
   }
 }
@@ -98,11 +98,12 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'You have clicked the button this many times:',
+              'Current Temp:',
+              style: Theme.of(context).textTheme.headline5,
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+              '$_counter  °C',
+              style: Theme.of(context).textTheme.headline3,
             ),
           ],
         ),
