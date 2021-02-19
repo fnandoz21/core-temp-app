@@ -33,7 +33,9 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
-
+  FlutterBlue flutterBlue = FlutterBlue.instance;
+  final List<BluetoothDevice> deviceList = new List<BluetoothDevice>();
+  final Map<Guid,List<int>> readValues = new Map<Guid,List<int>>();
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
   // how it looks.
@@ -51,29 +53,102 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  FlutterBlue flutterBlue = FlutterBlue.instance;
-  Future<bool> checkConnection() async{
-    bool bluetoothAvailable = await flutterBlue.isAvailable
-    if (bluetoothAvailable == false){
-      return false;
+  _addDevice(final BluetoothDevice device){
+    if(!widget.deviceList.contains(device)){
+      setState((){
+        widget.deviceList.add(device);
+    });
     }
-    bool bluetoothOn = await flutterBlue.isOn;
-    if(bluetoothOn == false){
-      return false;
-    }
-    return true;
   }
-  void _connect(){
-    flutterBlue.startScan(timeout: Duration(seconds:4));
-    var subscription = flutterBlue.scanResults.listen((results) {
-      for (ScanResult r in results) {
-        print('${r.device.name} found! rssi: ${r.rrsi}');
+
+  @override
+  void initState(){
+    super.initState();
+    widget.flutterBlue.connectedDevices.asStream().listen((List<BluetoothDevice> devices){
+      for (BluetoothDevice device in devices){
+        _addDevice(device);
       }
-    })
-    flutterBlue.stopScan();
+    });
+    widget.flutterBlue.scanResults.listen((List<ScanResult>results){
+      for (ScanResult result in results){
+        _addDevice(result.device);
+      }
+    });
+    widget.flutterBlue.startScan();
   }
+  ListView _buildView(){
+    if(_connectedDevice!=null){
+      return _buildConnectDeviceView();
+    }
+    return _buildDeviceList();
+  }
+  ListView _buildDeviceList(){
+    List<Container> containers = new List<Container>();
+    for (BluetoothDevice device in widget.deviceList){
+      containers.add(
+        Container(
+          height:50,
+          child:Row(
+            children:<Widget>[
+              Expanded(
+                child: Column(
+                  children: <Widget>[
+                    Text(device.name =="?'(unknown device)':device.name"),
+                    Text(device.id.toString()),
+                  ],
+                ),
+              ),
+              FlatButton(
+                color: Colors.blue,
+                child: Text(
+                'Connect',
+                style:TextStyle(color:Colors.white),
+              ),
+              onPressed: (){
+                  setState(() async{
+                    widget.flutterBlue.stopScan();
+                    try{
+                      await device.connect();
+                    }
+                    catch(e){
+                      if(e.code!='already_connected') {
+                        throw e;
+                      }
+                    }
+                    finally{
+                      _services= await device.discoverServices();
+                    }
+                    _connectedDevice = device;
+                  });
+              },
+              )
+            ],
+          ),
+        ),
+      );
+    }
+    return ListView(
+      padding:const EdgeInsets.all(8),
+      children:<Widget>[
+        ...containers,
+      ]
+    );
+  }
+  ListView _buildConnectedView(){
 
-
+    return ListView(
+      padding:const EdgeInsets.all(8),
+      children:<Widget>[
+                Text(
+                 'Current Temp:',
+                 style: Theme.of(context).textTheme.headline5,
+                ),
+                Text(
+                   widget.readValues[characteristic.uuid].toString() +'  °C',
+                   style: Theme.of(context).textTheme.headline3),
+              ],
+    );
+  }
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -85,56 +160,63 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   // This method is rerun every time setState is called, for instance as done
+  //   // by the _incrementCounter method above.
+  //   //
+  //   // The Flutter framework has been optimized to make rerunning build methods
+  //   // fast, so that you can just rebuild anything that needs updating rather
+  //   // than having to individually change instances of widgets.
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       // Here we take the value from the MyHomePage object that was created by
+  //       // the App.build method, and use it to set our appbar title.
+  //       title: Text(widget.title),
+  //     ),
+  //     body: Center(
+  //       // Center is a layout widget. It takes a single child and positions it
+  //       // in the middle of the parent.
+  //       child: Column(
+  //         // Column is also a layout widget. It takes a list of children and
+  //         // arranges them vertically. By default, it sizes itself to fit its
+  //         // children horizontally, and tries to be as tall as its parent.
+  //         //
+  //         // Invoke "debug painting" (press "p" in the console, choose the
+  //         // "Toggle Debug Paint" action from the Flutter Inspector in Android
+  //         // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
+  //         // to see the wireframe for each widget.
+  //         //
+  //         // Column has various properties to control how it sizes itself and
+  //         // how it positions its children. Here we use mainAxisAlignment to
+  //         // center the children vertically; the main axis here is the vertical
+  //         // axis because Columns are vertical (the cross axis would be
+  //         // horizontal).
+  //         mainAxisAlignment: MainAxisAlignment.center,
+  //         children: <Widget>[
+  //           Text(
+  //             'Current Temp:',
+  //             style: Theme.of(context).textTheme.headline5,
+  //           ),
+  //           Text(
+  //             '$_counter  °C',
+  //             style: Theme.of(context).textTheme.headline3,
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //     floatingActionButton: FloatingActionButton(
+  //       onPressed: _incrementCounter,
+  //       tooltip: 'Increment',
+  //       child: Icon(Icons.add),
+  //     ), // This trailing comma makes auto-formatting nicer for build methods.
+  //   );
+  // }
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Current Temp:',
-              style: Theme.of(context).textTheme.headline5,
-            ),
-            Text(
-              '$_counter  °C',
-              style: Theme.of(context).textTheme.headline3,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title:Text(widget.title),
+    ),
+    body:_buildView(),
+  );
 }
