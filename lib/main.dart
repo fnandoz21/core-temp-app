@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_blue/flutter_blue.dart';
 void main() {
   runApp(MyApp());
 }
@@ -51,6 +51,28 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  FlutterBlue flutterBlue = FlutterBlue.instance;
+  Future<bool> checkConnection() async{
+    bool bluetoothAvailable = await flutterBlue.isAvailable
+    if (bluetoothAvailable == false){
+      return false;
+    }
+    bool bluetoothOn = await flutterBlue.isOn;
+    if(bluetoothOn == false){
+      return false;
+    }
+    return true;
+  }
+  void _connect(){
+    flutterBlue.startScan(timeout: Duration(seconds:4));
+    var subscription = flutterBlue.scanResults.listen((results) {
+      for (ScanResult r in results) {
+        print('${r.device.name} found! rssi: ${r.rrsi}');
+      }
+    })
+    flutterBlue.stopScan();
+  }
+
 
   void _incrementCounter() {
     setState(() {
