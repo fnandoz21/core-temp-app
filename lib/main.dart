@@ -1,7 +1,9 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 void main() => runApp(MyApp());
 
@@ -32,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _writeController = TextEditingController();
   BluetoothDevice _connectedDevice;
   List<BluetoothService> _services;
-
+  Queue temps = new Queue();
   _addDeviceTolist(final BluetoothDevice device) {
     if (!widget.devicesList.contains(device)) {
       setState(() {
@@ -243,42 +245,65 @@ class _MyHomePageState extends State<MyHomePage> {
       List<Widget> characteristicsWidget = new List<Widget>();
 
       for (BluetoothCharacteristic characteristic in service.characteristics) {
-        characteristicsWidget.add(
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Column(
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Text(characteristic.uuid.toString(),
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    ..._buildReadWriteNotifyButton(characteristic),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    Text('Value: ' +
-                        widget.readValues[characteristic.uuid].toString()),
-                  ],
-                ),
-                Divider(),
-              ],
-            ),
-          ),
-        );
-      }
-      containers.add(
-        Container(
-          child: ExpansionTile(
-              title: Text(service.uuid.toString()),
-              children: characteristicsWidget),
-        ),
-      );
-    }
+        await characteristic.setNotifyValue(true);
+        characteristic.value.listen((value){
+          var temp = value[0]/100;
+          temps.add(temp);
+          if(temps.length > 1800){
+            temps.removeFirst();
+          }
+        }
+    );
+        containers.add(
+          Container(
+            padding:EdgeInsets.all(10),
+            width:double.infinity,
+            child: LineChart(LineChartData(
+              borderData: FlBorderData(show:false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots:
+                )
+              ]
+            ))
+          )
+        )
+    //     characteristicsWidget.add(
+    //       Align(
+    //         alignment: Alignment.centerLeft,
+    //         child: Column(
+    //           children: <Widget>[
+    //             Row(
+    //               children: <Widget>[
+    //                 Text(characteristic.uuid.toString(),
+    //                     style: TextStyle(fontWeight: FontWeight.bold)),
+    //               ],
+    //             ),
+    //             Row(
+    //               children: <Widget>[
+    //                 ..._buildReadWriteNotifyButton(characteristic),
+    //               ],
+    //             ),
+    //             Row(
+    //               children: <Widget>[
+    //                 Text('Value: ' +
+    //                     widget.readValues[characteristic.uuid].toString()),
+    //               ],
+    //             ),
+    //             Divider(),
+    //           ],
+    //         ),
+    //       ),
+    //     );
+    //   }
+    //   containers.add(
+    //     Container(
+    //       child: ExpansionTile(
+    //           title: Text(service.uuid.toString()),
+    //           children: characteristicsWidget),
+    //     ),
+    //   );
+    // }
 
     return ListView(
       padding: const EdgeInsets.all(8),
