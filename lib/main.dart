@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _writeController = TextEditingController();
   BluetoothDevice _connectedDevice;
   List<BluetoothService> _services;
-  Queue temps = new Queue();
+  Queue temps = new Queue.from([1.0,2.0,3.0,4.0,5.0]);
   _addDeviceTolist(final BluetoothDevice device) {
     if (!widget.devicesList.contains(device)) {
       setState(() {
@@ -238,93 +238,115 @@ class _MyHomePageState extends State<MyHomePage> {
     return buttons;
   }
 
+  void setCharacteristic(){
+
+  }
+  void appendTemp(tempChar) async{
+    await tempChar.setNotifyValue(true);
+    tempChar.value.listen((value) {
+      setState((){
+      var temp = value[0].toDouble() / 100;
+      temps.add(temp);
+      if (temps.length > 1800) {
+        temps.removeFirst();
+      }
+    });
+          }
+    );
+  }
   ListView _buildConnectDeviceView() {
     List<Container> containers = new List<Container>();
 
     for (BluetoothService service in _services) {
       List<Widget> characteristicsWidget = new List<Widget>();
-
       for (BluetoothCharacteristic characteristic in service.characteristics) {
-        await characteristic.setNotifyValue(true);
-        characteristic.value.listen((value){
-          var temp = value[0]/100;
-          temps.add(temp);
-          if(temps.length > 1800){
-            temps.removeFirst();
-          }
-        }
-    );
         containers.add(
-          Container(
-            padding:EdgeInsets.all(10),
-            width:double.infinity,
-            child: LineChart(LineChartData(
-              borderData: FlBorderData(show:false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots:
+            Container(
+                padding: EdgeInsets.all(10.0),
+                child: Text(temps.last.toString() + '°',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textScaleFactor: 5.0,
                 )
-              ]
-            ))
-          )
-        )
-    //     characteristicsWidget.add(
-    //       Align(
-    //         alignment: Alignment.centerLeft,
-    //         child: Column(
-    //           children: <Widget>[
-    //             Row(
-    //               children: <Widget>[
-    //                 Text(characteristic.uuid.toString(),
-    //                     style: TextStyle(fontWeight: FontWeight.bold)),
-    //               ],
-    //             ),
-    //             Row(
-    //               children: <Widget>[
-    //                 ..._buildReadWriteNotifyButton(characteristic),
-    //               ],
-    //             ),
-    //             Row(
-    //               children: <Widget>[
-    //                 Text('Value: ' +
-    //                     widget.readValues[characteristic.uuid].toString()),
-    //               ],
-    //             ),
-    //             Divider(),
-    //           ],
-    //         ),
-    //       ),
-    //     );
-    //   }
-    //   containers.add(
-    //     Container(
-    //       child: ExpansionTile(
-    //           title: Text(service.uuid.toString()),
-    //           children: characteristicsWidget),
-    //     ),
-    //   );
-    // }
+            )
+        );
+        List<FlSpot> tempData = List.generate(temps.length, (index) {
+          return FlSpot(index.toDouble(), temps.elementAt(index));
+        });
+        containers.add(
+            Container(
+                padding: EdgeInsets.all(10),
+                width: double.infinity,
+                child: LineChart(LineChartData(
+                    borderData: FlBorderData(show: false),
+                    lineBarsData: [
+                      LineChartBarData(
+                          spots: tempData
+                      )
+                    ]
+                ))
+            )
+        );
+        //     characteristicsWidget.add(
+        //       Align(
+        //         alignment: Alignment.centerLeft,
+        //         child: Column(
+        //           children: <Widget>[
+        //             Row(
+        //               children: <Widget>[
+        //                 Text(characteristic.uuid.toString(),
+        //                     style: TextStyle(fontWeight: FontWeight.bold)),
+        //               ],
+        //             ),
+        //             Row(
+        //               children: <Widget>[
+        //                 ..._buildReadWriteNotifyButton(characteristic),
+        //               ],
+        //             ),
+        //             Row(
+        //               children: <Widget>[
+        //                 Text('Value: ' +
+        //                     widget.readValues[characteristic.uuid].toString()),
+        //               ],
+        //             ),
+        //             Divider(),
+        //           ],
+        //         ),
+        //       ),
+        //     );
+        //   }
+        //   containers.add(
+        //     Container(
+        //       child: ExpansionTile(
+        //           title: Text(service.uuid.toString()),
+        //           children: characteristicsWidget),
+        //     ),
+        //   );
+        // }
 
-    return ListView(
-      padding: const EdgeInsets.all(8),
-      children: <Widget>[
-        ...containers,
-      ],
-    );
-  }
-
-  ListView _buildView() {
-    if (_connectedDevice != null) {
-      return _buildConnectDeviceView();
+        return ListView(
+          padding: const EdgeInsets.all(8),
+          children: <Widget>[
+            ...containers,
+          ],
+        );
+      }
     }
-    return _buildListViewOfDevices();
   }
+      // NOTE: the if statement and secondary return are only to test UI as if a device were connected
+      ListView _buildView() {
+        //if (_connectedDevice != null) {
+          return _buildConnectDeviceView();
+      //  }
+       // return _buildListViewOfDevices();
+      }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-        ),
-        body: _buildView(),
-      );
-}
+      @override
+      Widget build(BuildContext context) =>
+          Scaffold(
+            appBar: AppBar(
+              title: Text(widget.title),
+            ),
+            body: _buildView(),
+          );
+    }
