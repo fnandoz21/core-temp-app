@@ -210,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
     containers.add(Container(
         padding: EdgeInsets.all(10.0),
         child: Text(
-          temps.last.elementAt(0).toString() + '°C',
+          ((100*temps.last.elementAt(0)).round()/100).toString() + '°C',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
           textScaleFactor: 5.0,
@@ -230,11 +230,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 getTitles: (val) {
                   if(temps.length<5){
                     temps.elementAt(val.toInt()).elementAt(1);
-                    return temps.elementAt(val.toInt()).elementAt(1);
+                    return temps.elementAt(val.toInt()).elementAt(1).toString();
                   }
                   else if (val.toInt() % (temps.length~/5) == 0) {
 
-                    return temps.elementAt(val.toInt()).elementAt(1);
+                    return temps.elementAt(val.toInt()).elementAt(1).toString();
                   }
                   else {
                     return '';
