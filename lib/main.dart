@@ -48,11 +48,12 @@ class _MyHomePageState extends State<MyHomePage> {
   BluetoothDevice _connectedDevice;
 
   // List<BluetoothService> _services;
-  //Queue temps = new Queue.from([1.0, 2.0, 3.0, 4.0, 5.0]);
-  Queue temps = new Queue();
+  Queue temps = new Queue.from([[1.0, DateTime.now()]]);
+  //Queue temps = new Queue();
   List<BluetoothDevice> devicesList = [];
   int weirdLeadingDigit = 0;
   int maxPlotPoints = 8;
+  int tempsQSize = 20; //display over 40 seconds
   Future<void> getpaireddevices() async {
     List<BluetoothDevice> devices = [];
     try {
@@ -103,6 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
         print('Connected to the device');
 
         connection.input.listen((Uint8List data) {
+          double thisPoint;
           //print('Data incoming: ${ascii.decode(data)}');
           if (data.length == 1) {
             try {
@@ -111,27 +113,36 @@ class _MyHomePageState extends State<MyHomePage> {
               print('Expected Numerical string, got ${ascii.decode(data)}');
             }
           } else if (data.length == 5) {
-            double thisPoint =
-                double.parse(ascii.decode(data)) + 10 * weirdLeadingDigit;
+
+            try {
+              thisPoint =
+                  double.parse(ascii.decode(data)) + 10 * weirdLeadingDigit;
+            }catch(exception){
+              thisPoint = temps.last.elementAt(0);
+            }
             var now = DateTime.now();
             String nowTime = DateFormat.Hms().format(now);
-            print(nowTime);
-            print(thisPoint);
+            //print(nowTime);
+            print(ascii.decode(data));
             setState(() {
               temps.add([thisPoint, nowTime]);
-              if (temps.length > 1800) {
+              if (temps.length > tempsQSize) {
                 temps.removeFirst();
               }
             });
           } else {
-            double thisPoint = double.parse(ascii.decode(data));
+            try {
+              thisPoint = double.parse(ascii.decode(data));
+            } catch(exception){
+              thisPoint = temps.last.elementAt(0);
+            }
             var now = DateTime.now();
             String nowTime = DateFormat.Hms().format(now);
-            print(nowTime);
-            print(thisPoint);
+
+            print(ascii.decode(data));
             setState(() {
               temps.add([thisPoint, nowTime]);
-              if (temps.length > 1800) {
+              if (temps.length > tempsQSize) {
                 temps.removeFirst();
               }
             });
@@ -183,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         var temp = value[0].toDouble() / 100;
         temps.add(temp);
-        if (temps.length > 1800) {
+        if (temps.length > tempsQSize) {
           temps.removeFirst();
         }
       });
@@ -199,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
     containers.add(Container(
         padding: EdgeInsets.all(10.0),
         child: Text(
-          temps.last.toString() + '°C',
+          temps.last.elementAt(0).toString() + '°C',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
           textScaleFactor: 5.0,
@@ -217,8 +228,13 @@ class _MyHomePageState extends State<MyHomePage> {
               bottomTitles: SideTitles(
                 showTitles: true,
                 getTitles: (val) {
-                  if (val.toInt() % (temps.length~/5) == 0) {
-                      return temps.elementAt(val.toInt()).elementAt(1);
+                  if(temps.length<5){
+                    temps.elementAt(val.toInt()).elementAt(1);
+                    return temps.elementAt(val.toInt()).elementAt(1);
+                  }
+                  else if (val.toInt() % (temps.length~/5) == 0) {
+
+                    return temps.elementAt(val.toInt()).elementAt(1);
                   }
                   else {
                     return '';
